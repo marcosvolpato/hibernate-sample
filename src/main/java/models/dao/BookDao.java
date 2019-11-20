@@ -1,8 +1,11 @@
 package models.dao;
 
+import java.util.List;
+
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
+import hibernate.HibernateUtils;
 import hibernate.SessionManager;
 import models.Book;
 
@@ -13,13 +16,17 @@ public class BookDao {
 		sessionFactory = SessionManager.getInstance().getSessionFactory();
 	}
 	
-	public Book create(Book book) {
+	public Book save(Book book) {
 		boolean success = true;
 		Session session = sessionFactory.openSession();
 		try {
 			session.beginTransaction();
-
-			session.save(book);
+			
+			// Se não existir um id, cria-se um novo registro, se existir atualiza o registro correspondente
+			if (book.getId() == 0L)
+				session.save(book);
+			else
+				session.update(book);
 
 			session.getTransaction().commit();
 		} catch (Exception e) {
@@ -31,7 +38,7 @@ public class BookDao {
 		return success ? book : null;
 	}
 
-	public Book read(long id) {
+	public Book find(long id) {
 		Session session = sessionFactory.openSession();
 
 		Book book = session.get(Book.class, id);
@@ -39,25 +46,19 @@ public class BookDao {
 		session.close();
 		return book;
 	}
-
-	public Book update(Book book) {
-		
-		boolean success = true;
-
+	
+	public List<Book> findAll() {
 		Session session = sessionFactory.openSession();
-		try {
-			session.beginTransaction();
-
-			session.update(book);
-
-			session.getTransaction().commit();
-		} catch (Exception e) {
-			session.getTransaction().rollback();
-			success = false;
-		}
+		List<Book> books = HibernateUtils.findAll(Book.class, session);
 		session.close();
-		
-		return success ? book : null;
+		return books;
+	}
+	
+	public List<Book> moreExpensiveThan(float price) {
+		Session session = sessionFactory.openSession();
+		List<Book> books = HibernateUtils.greaterFloatThan(Book.class, session, "price", price);
+		session.close();
+		return books;
 	}
 
 	public boolean delete(long id) {
